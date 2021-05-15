@@ -1,5 +1,4 @@
 #!/bin/bash
-
 set -e
 set -o pipefail
 
@@ -15,61 +14,31 @@ if [ -s "${lint_config_file}" ] ; then
   FLAGS=$FLAGS' --config '"${lint_config_file}"  
 fi
 
-if [ "${strict}" = "yes" ] ; then
-  echo "Running strict mode"
-  FLAGS=$FLAGS' --strict'
-fi
-
-if [ "${quiet}" = "yes" ] ; then
-  echo "Running quiet mode"
-  FLAGS=$FLAGS' --quiet'  
-fi
-
-
 cd "${linting_path}"
 
-filename="swiftlint_report"
-case $reporter in
-    xcode|emoji)
-      filename="${filename}.txt"
-      ;;
-    markdown)
-      filename="${filename}.md"
-      ;;
-    csv|html)
-      filename="${filename}.${reporter}"
-      ;;
-    checkstyle|junit)
-      filename="${filename}.xml"
-      ;;
-    json|sonarqube)
-      filename="${filename}.json"
-      ;;
-esac
+filename="swiftlint_report.txt"
 
-report_path="${BITRISE_DEPLOY_DIR}/${filename}"
+report_path="~/${filename}"
+
+run_swiftlint() {
+    local filename="${1}"
+    if [[ "${filename##*.}" == "swift" ]]; then
+        swiftlint_output+=$"$(swiftlint lint --path "$swift_file" --reporter "xcode" "${FLAGS}")"
+    fi
+}
 
 case $lint_range in 
   "changed")
-  echo "Linting diff only"
-    files=$(git diff HEAD^ --name-only -- '*.swift')
-
-    echo $files
-
-    for swift_file in $(git diff HEAD^ --name-only -- '*.swift')
-    do 
-      swiftlint_output+=$"$(swiftlint lint --path "$swift_file" --reporter ${reporter} "${FLAGS}")"
-    done
+    echo "Linting diff only"
+    git fetch origin master
+    git diff origin/master --name-only -- '*.swift' | while read filename; do run_swiftlint "${filename}"; done
     ;;
-  
-  "all") 
+  "all")
     echo "Linting all files"
     swiftlint_output="$(swiftlint lint --reporter ${reporter} ${FLAGS})"
     ;;
 esac
 
-# This will set the `swiftlint_output` in `SWIFTLINT_REPORT` env variable. 
-# so it can be used to send in Slack etc. 
 envman add --key "SWIFTLINT_REPORT" --value "${swiftlint_output}"
 echo "Saved swiftlint output in SWIFTLINT_REPORT"
 
@@ -78,4 +47,12 @@ echo "Saved swiftlint output in SWIFTLINT_REPORT"
 echo "${swiftlint_output}" > $report_path
 envman add --key "SWIFTLINT_REPORT_PATH" --value "${report_path}"
 echo "Saved swiftlint output in file at path SWIFTLINT_REPORT_PATH"
- 
+
+if [ -s ${filename} ]
+then
+    echo 'Everything is fine!'
+    exit 0
+else
+    echo 'You have some warning or errors!'
+    exit 1
+fi

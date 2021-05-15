@@ -61,49 +61,6 @@ inputs:
       description: |-
         If you use a custom linting configuration for Bitrise, you can specify the path here.
       is_required: false
-
-  - reporter: xcode
-    opts:
-      category: Config
-      description: |-
-        Sets the reporter style when printing violations or errors.
-      summary: ""
-      title: Select method for export
-      value_options:
-      - csv
-      - checkstyle
-      - emoji
-      - github-actions-logging
-      - html
-      - json
-      - junit
-      - markdown
-      - sonarqube
-      - xcode
-
-  - strict: "no"
-    opts:
-      category: Config
-      description: |-
-        Use strict mode when linting (i.e. warnings become errors)
-      is_required: false
-      summary: ""
-      title: Use strict mode
-      value_options:
-      - "yes"
-      - "no"
-
-  - quiet: "no"
-    opts:
-      category: Config
-      description: |-
-        Don't print status logs like 'Linting ' & 'Done linting'
-      is_required: false
-      summary: ""
-      title: Use quiet mode
-      value_options:
-      - "yes"
-      - "no"
 outputs:
 - SWIFTLINT_REPORT: null
   opts:
